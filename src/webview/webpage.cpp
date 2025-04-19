@@ -206,13 +206,10 @@ void WebPage::populateNetworkRequest(QNetworkRequest &request)
   WebPage* pagePointer = this;
 
   QVariant variant = QVariant::fromValue((void*) pagePointer);
-  request.setAttribute((QNetworkRequest::Attribute)(QNetworkRequest::User + 100), variant);
+  request.setAttribute(RequestModifiler::WebPagePointer, variant);
 
   if (lastRequestUrl_ == request.url()) {
-    request.setAttribute((QNetworkRequest::Attribute)(QNetworkRequest::User + 101), lastRequestType_);
-    if (lastRequestType_ == NavigationTypeLinkClicked) {
-      request.setRawHeader("X-QuiteRSS-UserLoadAction", QByteArray("1"));
-    }
+    request.setAttribute(RequestModifiler::NavigationType, lastRequestType_);
   }
 }
 

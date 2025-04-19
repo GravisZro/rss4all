@@ -121,7 +121,7 @@ QNetworkReply* AdBlockManager::block(const QNetworkRequest &request)
   const AdBlockRule* blockedRule = m_matcher->match(request, urlDomain, urlString);
 
   if (blockedRule) {
-    QVariant v = request.attribute((QNetworkRequest::Attribute)(QNetworkRequest::User + 100));
+    QVariant v = request.attribute(RequestModifiler::WebPagePointer);
     WebPage* webPage = static_cast<WebPage*>(v.value<void*>());
     if (WebPage::isPointerSafeToUse(webPage)) {
       if (!canBeBlocked(webPage->mainFrame()->url())) {

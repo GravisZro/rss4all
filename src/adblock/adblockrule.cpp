@@ -63,6 +63,7 @@
 
 #include "adblockrule.h"
 #include "adblocksubscription.h"
+#include "webpage.h"
 #include "common.h"
 
 #include <QDebug>
@@ -345,7 +346,7 @@ bool AdBlockRule::matchDomain(const QString &domain) const
 
 bool AdBlockRule::matchThirdParty(const QNetworkRequest &request) const
 {
-  const QString referer = request.attribute(QNetworkRequest::Attribute(QNetworkRequest::User + 151), QString()).toString();
+  const QString referer = request.attribute(RequestModifiler::RefererString, QString()).toString();
 
   if (referer.isEmpty()) {
     return false;
@@ -362,7 +363,7 @@ bool AdBlockRule::matchThirdParty(const QNetworkRequest &request) const
 
 bool AdBlockRule::matchObject(const QNetworkRequest &request) const
 {
-  bool match = request.attribute(QNetworkRequest::Attribute(QNetworkRequest::User + 150)).toString() == QL1S("object");
+  bool match = request.attribute(RequestModifiler::TypeString).toString() == QL1S("object");
 
   return hasException(ObjectOption) ? !match : match;
 }

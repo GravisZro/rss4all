@@ -25,6 +25,14 @@
 class NetworkManagerProxy;
 class AdBlockRule;
 
+namespace RequestModifiler
+{
+  constexpr QNetworkRequest::Attribute WebPagePointer = QNetworkRequest::Attribute(QNetworkRequest::User + 1);
+  constexpr QNetworkRequest::Attribute NavigationType = QNetworkRequest::Attribute(QNetworkRequest::User + 2);
+  constexpr QNetworkRequest::Attribute TypeString     = QNetworkRequest::Attribute(QNetworkRequest::User + 3);
+  constexpr QNetworkRequest::Attribute RefererString  = QNetworkRequest::Attribute(QNetworkRequest::User + 4);
+}
+
 class WebPage : public QWebPage
 {
   Q_OBJECT

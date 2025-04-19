@@ -46,7 +46,7 @@ QObject* WebPluginFactory::create(const QString &mimeType, const QUrl &url,
   // AdBlock
   AdBlockManager* manager = AdBlockManager::instance();
   QNetworkRequest request(url);
-  request.setAttribute(QNetworkRequest::Attribute(QNetworkRequest::User + 150), QString("object"));
+  request.setAttribute(RequestModifiler::TypeString, QString("object"));
   if (manager->isEnabled() && manager->block(request)) {
     return new QObject();
   }
