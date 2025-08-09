@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.rss4all</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0+</project_license>
+  <name>RSS4All</name>
+  <summary>Free news reader</summary>
+  <description>
+    <p>
+      RSS4All is an easy to use application designed to help you keep track of the latest news on your RSS feeds. It is quite fast and comfortable to user.
+    </p>
+    <p>
+      The program allows you to add as many RSS feed links as you want. You can update the feeds manually.
+    </p>
+  </description>
+  <screenshots>
+  <screenshot type="default">
+    <image width="790" height="538">https://github.com/RSS4All/RSS4All/raw/master/screenshots/screenshot01.png</image>
+  </screenshot>
+  <screenshot>
+    <image width="790" height="538">https://github.com/RSS4All/RSS4All/raw/master/screenshots/screenshot02.png</image>
+  </screenshot>
+  <screenshot>
+    <image width="790" height="538">https://github.com/RSS4All/RSS4All/raw/master/screenshots/screenshot03.png</image>
+  </screenshot>
+  </screenshots>
+  <launchable type="desktop-id">rss4all.desktop</launchable>
+  <url type="homepage">https://rss4all.github.io</url>
+  <update_contact>rss4all@adaptivetime.com</update_contact>
+</component>
