@@ -509,8 +509,7 @@ void NewsTabWidget::setSettings(bool init, bool newTab)
       file.close();
     }
 
-    if (mainWindow_->externalBrowserOn_ == Browser::internal ||
-        mainWindow_->externalBrowserOn_ == Browser::external) {
+    if (!mainWindow_->externalBrowserOn_) {
       webView_->page()->setLinkDelegationPolicy(QWebPage::DelegateAllLinks);
     } else {
       webView_->page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
@@ -723,10 +722,15 @@ void NewsTabWidget::slotNewsViewSelected(QModelIndex index, bool clicked)
 // ----------------------------------------------------------------------------
 void NewsTabWidget::slotNewsViewDoubleClicked(QModelIndex index)
 {
+    doNewsViewDoubleClicked(index, !mainWindow_->externalBrowserOn_);
+}
+
+void NewsTabWidget::doNewsViewDoubleClicked(QModelIndex index, bool embedded_open)
+{
   if (!index.isValid()) return;
 
   QUrl url = QUrl::fromEncoded(getLinkNews(index.row()).toUtf8());
-  slotLinkClicked(url);
+  doLinkClicked(url, embedded_open);
 }
 
 // ----------------------------------------------------------------------------
@@ -1344,9 +1348,7 @@ void NewsTabWidget::updateWebView(QModelIndex index)
     showDescriptionNews_ = !displayNews.toInt();
 
   if (!showDescriptionNews_) {
-    if (mainWindow_->externalBrowserOn_ == Browser::internal ||
-        mainWindow_->externalBrowserOn_ == Browser::external)
-    {
+    if (!mainWindow_->externalBrowserOn_) {
       locationBar_->setText(newsUrl.toString());
       setWebToolbarVisible(true, false);
 
@@ -1360,6 +1362,20 @@ void NewsTabWidget::updateWebView(QModelIndex index)
     setWebToolbarVisible(false, false);
 
     QString htmlStr;
+/*
+    QString content;
+    {
+      QSqlQuery q (db_);
+      q.prepare("SELECT content FROM articles WHERE ID=?");
+      q.addBindValue(newsModel_->dataField(index.row(), "id"));
+      q.exec();
+      Q_ASSERT(q.next());
+      content = q.value(0).toString();
+      q.finish();
+    }
+    if (!content.isEmpty())
+      qDebug() << content;
+*/
     QString content = newsModel_->dataField(index.row(), "content").toString();
     if (!content.contains(QzRegExp("<html(.*)</html>", Qt::CaseInsensitive))) {
       QString description = newsModel_->dataField(index.row(), "description").toString();
@@ -1615,6 +1631,19 @@ void NewsTabWidget::loadNewspaper(int refresh)
     linkNewsString_ = getLinkNews(index.row());
     QString linkString = linkNewsString_;
 
+    //QVariant row_id = newsModel_->dataField(index.row(), "id");
+    /*
+    QString content;
+    {
+      QSqlQuery q (db_);
+      q.prepare("SELECT content FROM articles WHERE ID=?");
+      q.addBindValue(newsModel_->dataField(index.row(), "id"));
+      q.exec();
+      Q_ASSERT(q.next());
+      content = q.value(0).toString();
+      q.finish();
+    }
+*/
     QString content = newsModel_->dataField(index.row(), "content").toString();
     if (!content.contains(QzRegExp("<html(.*)</html>", Qt::CaseInsensitive))) {
       QString description = newsModel_->dataField(index.row(), "description").toString();
@@ -1855,6 +1884,11 @@ void NewsTabWidget::hideWebContent()
 
 void NewsTabWidget::slotLinkClicked(QUrl url)
 {
+  doLinkClicked(url, !mainWindow_->externalBrowserOn_);
+}
+
+void NewsTabWidget::doLinkClicked(QUrl url, bool embedded_open)
+{
   if (url.scheme() == QLatin1String("internal")) {
     actionNewspaper(url);
     return;
@@ -1877,33 +1911,26 @@ void NewsTabWidget::slotLinkClicked(QUrl url)
     }
   }
 
-  if ((mainWindow_->externalBrowserOn_ == Browser::internal ||
-       mainWindow_->externalBrowserOn_ == Browser::external) &&
-      (webView_->buttonClick_ != LEFT_BUTTON_ALT)) {
-    if (webView_->buttonClick_ == LEFT_BUTTON) {
-      if (!webControlPanel_->isVisible()) {
-        locationBar_->setText(url.toString());
-        setWebToolbarVisible(true, false);
-      }
-      webView_->load(url);
-    } else {
-      if ((webView_->buttonClick_ == MIDDLE_BUTTON) ||
-          (webView_->buttonClick_ == LEFT_BUTTON_CTRL)) {
-        mainWindow_->openNewsTab_ = NEW_TAB_BACKGROUND;
-      } else {
-        mainWindow_->openNewsTab_ = NEW_TAB_FOREGROUND;
-      }
-      if (!mainWindow_->openLinkInBackgroundEmbedded_) {
-        if (mainWindow_->openNewsTab_ == NEW_TAB_BACKGROUND)
-          mainWindow_->openNewsTab_ = NEW_TAB_FOREGROUND;
-        else
-          mainWindow_->openNewsTab_ = NEW_TAB_BACKGROUND;
-      }
-
-      mainWindow_->createWebTab(url);
-    }
-  } else {
+  if (!embedded_open || webView_->buttonClick_ == LEFT_BUTTON_ALT)
     openUrl(url);
+  else if (webView_->buttonClick_ == LEFT_BUTTON)
+  {
+    if (!webControlPanel_->isVisible())
+    {
+      locationBar_->setText(url.toString());
+      setWebToolbarVisible(true, false);
+    }
+    webView_->load(url);
+  }
+  else
+  {
+    mainWindow_->openNewsTab_ =
+        (webView_->buttonClick_ == MIDDLE_BUTTON ||  // IF (middle clicked
+         webView_->buttonClick_ == LEFT_BUTTON_CTRL) //     OR left alt clicked)
+        ^ !mainWindow_->openLinkInBackgroundEmbedded_ // XOR NOT open in background
+          ? NEW_TAB_BACKGROUND
+          : NEW_TAB_FOREGROUND;
+        mainWindow_->createWebTab(url);
   }
 
   webView_->buttonClick_ = 0;
@@ -1997,10 +2024,7 @@ void NewsTabWidget::openInBrowserNews()
 {
   if (type_ >= TabTypeWeb) return;
 
-  Browser externalBrowserOn_ = mainWindow_->externalBrowserOn_;
-  mainWindow_->externalBrowserOn_ = Browser::external;
-  slotNewsViewDoubleClicked(newsView_->currentIndex());
-  mainWindow_->externalBrowserOn_ = externalBrowserOn_;
+  doNewsViewDoubleClicked(newsView_->currentIndex(), false);
 }
 
 /** @brief Open news in external browser
@@ -2167,17 +2191,13 @@ void NewsTabWidget::openLink()
  *----------------------------------------------------------------------------*/
 void NewsTabWidget::openLinkInNewTab()
 {
-  Browser externalBrowserOn_ = mainWindow_->externalBrowserOn_;
-  mainWindow_->externalBrowserOn_ = Browser::external;
-
   if (QApplication::keyboardModifiers() == Qt::NoModifier) {
     webView_->buttonClick_ = MIDDLE_BUTTON;
   } else {
     webView_->buttonClick_ = MIDDLE_BUTTON_MOD;
   }
 
-  slotLinkClicked(linkUrl_);
-  mainWindow_->externalBrowserOn_ = externalBrowserOn_;
+  doLinkClicked(linkUrl_, true);
 }
 
 /** @brief Open link in browser
@@ -2191,9 +2211,7 @@ bool NewsTabWidget::openUrl(const QUrl &url)
     return QDesktopServices::openUrl(url);
 
   mainWindow_->isOpeningLink_ = true;
-  if (mainWindow_->externalBrowserOn_ == Browser::internal ||
-      mainWindow_->externalBrowserOn_ == Browser::externalSpecific)
-  {
+  if (!mainWindow_->externalBrowser_.isEmpty()) {
 #if defined(Q_OS_WIN)
     quintptr returnValue = (quintptr)ShellExecute(
           0, 0,
@@ -2305,8 +2323,7 @@ void NewsTabWidget::showContextWebPage(const QPoint &p)
     const QWebHitTestResult &hitTest = webView_->page()->mainFrame()->hitTestContent(p);
     if (!hitTest.linkUrl().isEmpty() && hitTest.linkUrl().scheme() != "javascript") {
       linkUrl_ = hitTest.linkUrl();
-      if (mainWindow_->externalBrowserOn_ == Browser::internal ||
-          mainWindow_->externalBrowserOn_ == Browser::external) {
+      if (!mainWindow_->externalBrowserOn_) {
         menu.addSeparator();
         menu.addAction(urlExternalBrowserAct_);
       }
